@@ -27,6 +27,8 @@ Content-Type: text/html
 """
 
     def __init__(self):
+
+        # allocate a server socket, bind it to a port, and then listen for incoming connections
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s.bind((self.host, self.port))
@@ -35,11 +37,18 @@ Content-Type: text/html
     def handle_client(self):
         while 1:
             conn, address = self.s.accept()
+
+            # accept an incoming client connection and parse the input data stream into a HTTP request
             request_data = conn.recv(self.buf_size)
             print(request_data)
+
+            # Based on the request's parameters form a response and send it back to the client
             conn.sendall(self.response)
             conn.close()
 
+            # the server continues to perform steps 2 (GET) and 3 (dir list) for as long as the server is running
+            # if in multi-thread mode, then fork a thread after we accept a connection
+            # and let the child thread handle parsing and responding to the request
 
 http = HTTP_server()
 http.handle_client()
