@@ -163,6 +163,11 @@ class HTTP_server:
             size = '-'
         return '<th>' + size + '</th></tr>'
 
+    def cgi(self, program, args):
+        if os.path.isfile(program):
+            return subprocess.check_output([program]+args)
+        else:
+            return 'Error -- program {0} not found.'.format(program)
 
 if __name__ == "__main__":
     # Accept a flag '--threaded' to make the server threaded
