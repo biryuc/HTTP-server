@@ -5,11 +5,12 @@ import sys
 import os
 import mimetypes
 import time
+import subprocess
 from urllib.parse import unquote
 
 class HTTP_server:
     host = '127.0.0.1'
-    port = 8086
+    port = 8081
     buf_size = 1024
     max_conn = 200
     abs_path = 'http://' + str(host) + ':' + str(port)
@@ -60,12 +61,15 @@ class HTTP_server:
         return response
         pass
 
-    def call_cgi(self, cgi, args, inputs=None):
+    def call_cgi(self, cgi, args=[], inputs=None):
         cgi_proc = subprocess.Popen([cgi]+args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         if inputs:
-            return cgi_proc.communicate(input=inputs)[0]
+            output = cgi_proc.communicate(input=inputs)[0]
         else:
-            return cgi_proc
+            output = cgi_proc.communicate()[0]
+
+        print(output)
+        return output
 
     # First, check if passed path exists:
     # If not: page not found; if yes: need to know if it's a file or dir
@@ -73,6 +77,23 @@ class HTTP_server:
     # If index.html exists: open; if not: traverse directory
 
     def handle_GET(self, resource, protocol):
+
+        arg_string = ''
+        if '?' in resource:
+            resource,param_string = resource.split('?', 1)
+            arg_string = ''
+            for pair in parameter_sttring.split('&'):
+                key,val = pair.split('=')
+                arg_string += '-'+key+' '+val+' '
+            
+
+        if resource[-4:] == '.cgi':
+            if arg_string != '':
+                self.call_cgi('.'+resource[:-4], arg_string)
+            else:
+                self.call_cgi('.'+resource[:-4])
+            
+
         if resource == '/favicon.ico':
             return ''.encode()
 
