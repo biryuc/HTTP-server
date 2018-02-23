@@ -77,7 +77,7 @@ class HTTP_server:
         path = '.' + resource
 
         if not os.path.exists(path):
-            body = 'HTTP/1.0 404 Not Found\r\n'
+            body = b'HTTP/1.0 404 Not Found\r\n'
         else:
             if os.path.isdir(path):
                 index = path + 'index.html'
@@ -86,12 +86,11 @@ class HTTP_server:
                     body = f.read().encode()
                     f.close()
                 else:
-                    body = self.traverse_dir(resource).encode()
+                    body = self.traverse_dir('.' + resource).encode()
 
             else:
                 # open file that was passed
                 c_type, format = mimetypes.guess_type(path)[0].split('/')
-                print(c_type)
                 if c_type == 'text':
                     f = open(path, "r")
                     body = f.read().encode()
@@ -108,20 +107,31 @@ class HTTP_server:
 
     # Traverse current directory and display all subdirectories and files
 
-    def traverse_dir(self, resource):
+    def traverse_dir(self, path):
 
-        path = '.' + resource
-        parent = path + '/..'
+        # path must end with slash or error occurs
+        if path[-1] != '/':
+            path = path + '/'
+
+        # make sure we can't go past home directory for server
+        # otherwise get a relative path for parent directory
+
+        if path == './':
+            parent = './'
+        else:
+            parent = os.path.dirname(os.path.dirname(path))
+
+        # create html file
 
         begin = """
         <!DOCTYPE html>
         <html>
         <body>
         """
-        header = "<h1>Index of " + resource + "</h1>"
+        header = "<h1>Index of " + path[1:] + "</h1>"
 
         table_start = """
-        <table cols=\"3\"> 
+        <table cols=\"3\" cellspacing=\"10\"> 
             <tr>
                 <th>Name</th>
                 <th>LastModified</th> 
@@ -129,17 +139,16 @@ class HTTP_server:
             </tr>
         """
 
-        parent_row = self.create_link_col('Parent', self.abs_path + resource + '/..')\
+        parent_row = self.create_link_col('Parent', self.abs_path + parent[1:])\
                      + self.create_modified_col(parent) + self.create_size_col(parent)
 
-        print(parent_row)
-        traversed = begin + table_start + parent_row
+        traversed =  begin + header + table_start + parent_row
 
         files = os.listdir(path)
         for f in files:
-            print(f)
-            traversed = traversed + self.create_link_col(f, self.abs_path + resource + '/' + f)\
-                     + self.create_modified_col(path) + self.create_size_col(path+'/'+f)
+            fpath = path + f
+            traversed = traversed + self.create_link_col(f, self.abs_path + fpath[1:])\
+                     + self.create_modified_col(fpath) + self.create_size_col(fpath)
 
         end = """
         </table>
@@ -149,8 +158,7 @@ class HTTP_server:
         return traversed + end
 
     def create_link_col(self, name, link):
-        print(link)
-        return '<tr><th><a href=\"'+ link +'\">' + name + '</a></th>'
+        return '<tr><th align=\"left\" ><a href=\"'+ link +'\">' + name + '</a></th>'
 
     def create_modified_col(self, path):
         date = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(os.path.getmtime(path)))
@@ -161,7 +169,7 @@ class HTTP_server:
             size = str(os.path.getsize(path)) + 'B'
         else:
             size = '-'
-        return '<th>' + size + '</th></tr>'
+        return '<th align=\"right\" >' + size + '</th></tr>'
 
     def cgi(self, program, args):
         if os.path.isfile(program):
