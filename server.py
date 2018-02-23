@@ -5,8 +5,8 @@ import sys
 import os
 import mimetypes
 import time
-import subprocess
 import re
+import subprocess
 from urllib.parse import unquote
 
 
@@ -66,9 +66,9 @@ class HTTP_server:
     def call_cgi(self, cgi, args=[], inputs=None):
         cgi_proc = subprocess.Popen([cgi]+args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         if inputs:
-            output = cgi_proc.communicate(input=inputs)[0]
+            output = str(cgi_proc.communicate(input=inputs)[0])
         else:
-            output = cgi_proc.communicate()[0]
+            output = str(cgi_proc.communicate()[0])
 
         return output
 
@@ -82,14 +82,6 @@ class HTTP_server:
         components = self.url_pattern.match(resource)
         path = '.'+components.group(1)
         arg_string = components.group(3)
-
-        if resource[-4:] == '.cgi':
-            if arg_string:
-                args = arg_string.replace('&',' ').replace('=',' ').split(' ')
-                self.call_cgi(path[:-4], args)
-            else:
-                self.call_cgi(path[:-4])
-            
 
         if resource == '/favicon.ico':
             return ''.encode()
@@ -105,24 +97,26 @@ class HTTP_server:
             if os.path.isdir(path):
                 index = path + 'index.html'
                 if os.path.exists(index):
-                    f = open(index, "r")
-                    body = f.read().encode()
-                    f.close()
+                    with open(path, 'r') as f:
+                        body = f.read().encode()
                 else:
                     body = self.traverse_dir('.' + resource).encode()
-
+            elif resource[-4:] == '.cgi':
+                if arg_string:
+                    args = arg_string.replace('&',' ').replace('=',' ').split(' ')
+                    body = self.call_cgi(path, args).encode()
+                else:
+                    body = self.call_cgi(path).encode()
             else:
                 # open file that was passed
                 c_type, format = mimetypes.guess_type(path)[0].split('/')
                 if c_type == 'text':
-                    f = open(path, "r")
-                    body = f.read().encode()
-                    f.close()
+                    with open(path, 'r') as f:
+                        body = f.read().encode()
                 else:
                     content_type = mimetypes.guess_type(path)[0]
-                    f = open(path, "rb")
-                    body = f.read()
-                    f.close()
+                    with open(path, 'rb') as f:
+                        body = f.read().encode()
 
         header_part = response_line + content_line + content_type + blank_line + blank_line
         response = header_part.encode() + body
