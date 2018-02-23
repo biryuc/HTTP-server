@@ -60,6 +60,13 @@ class HTTP_server:
         return response
         pass
 
+    def call_cgi(self, cgi, args, inputs=None):
+        cgi_proc = subprocess.Popen([cgi]+args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        if inputs:
+            return cgi_proc.communicate(input=inputs)[0]
+        else:
+            return cgi_proc
+
     # First, check if passed path exists:
     # If not: page not found; if yes: need to know if it's a file or dir
     # If file: display it; if directory: check if index.html exists
