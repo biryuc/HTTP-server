@@ -16,7 +16,7 @@ class HTTP_server:
     buf_size = 1024
     max_conn = 200
     abs_path = 'http://' + str(host) + ':' + str(port)
-    url_pattern = re.compile('^((\/\w+\.?\w*)+)\??((\w+=\w+[&]?)*)', re.IGNORECASE)
+    url_pattern = re.compile('^((\/\w+\.?\w*.*)+)\??((\w+=\w+[&]?)*)', re.IGNORECASE)
 
     def __init__(self, threaded=False):
 
@@ -80,8 +80,13 @@ class HTTP_server:
     def handle_GET(self, resource, protocol):
 
         components = self.url_pattern.match(resource)
-        path = '.'+components.group(1)
-        arg_string = components.group(3)
+        if components:
+            path = '.'+components.group(1)
+            arg_string = components.group(3)
+        else:
+            path = './'
+        print(path)
+
 
         if resource == '/favicon.ico':
             return ''.encode()
@@ -97,7 +102,7 @@ class HTTP_server:
             if os.path.isdir(path):
                 index = path + 'index.html'
                 if os.path.exists(index):
-                    with open(path, 'r') as f:
+                    with open(index, 'r') as f:
                         body = f.read().encode()
                 else:
                     body = self.traverse_dir('.' + resource).encode()
@@ -116,7 +121,7 @@ class HTTP_server:
                 else:
                     content_type = mimetypes.guess_type(path)[0]
                     with open(path, 'rb') as f:
-                        body = f.read().encode()
+                        body = f.read()
 
         header_part = response_line + content_line + content_type + blank_line + blank_line
         response = header_part.encode() + body
