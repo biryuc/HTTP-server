@@ -6,7 +6,9 @@ import os
 import mimetypes
 import time
 import subprocess
+import re
 from urllib.parse import unquote
+
 
 class HTTP_server:
     host = '127.0.0.1'
@@ -14,6 +16,7 @@ class HTTP_server:
     buf_size = 1024
     max_conn = 200
     abs_path = 'http://' + str(host) + ':' + str(port)
+    url_pattern = re.compile('^((\/\w+\.?\w*)+)\??((\w+=\w+[&]?)*)', re.IGNORECASE)
 
     def __init__(self, threaded=False):
 
@@ -59,7 +62,6 @@ class HTTP_server:
             response = 'HTTP/1.0 501 Not Implemented\r\n'
 
         return response
-        pass
 
     def call_cgi(self, cgi, args=[], inputs=None):
         cgi_proc = subprocess.Popen([cgi]+args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -68,7 +70,6 @@ class HTTP_server:
         else:
             output = cgi_proc.communicate()[0]
 
-        print(output)
         return output
 
     # First, check if passed path exists:
@@ -78,20 +79,16 @@ class HTTP_server:
 
     def handle_GET(self, resource, protocol):
 
-        arg_string = ''
-        if '?' in resource:
-            resource,param_string = resource.split('?', 1)
-            arg_string = ''
-            for pair in parameter_sttring.split('&'):
-                key,val = pair.split('=')
-                arg_string += '-'+key+' '+val+' '
-            
+        components = self.url_pattern.match(resource)
+        path = '.'+components.group(1)
+        arg_string = components.group(3)
 
         if resource[-4:] == '.cgi':
-            if arg_string != '':
-                self.call_cgi('.'+resource[:-4], arg_string)
+            if arg_string:
+                args = arg_string.replace('&',' ').replace('=',' ').split(' ')
+                self.call_cgi(path[:-4], args)
             else:
-                self.call_cgi('.'+resource[:-4])
+                self.call_cgi(path[:-4])
             
 
         if resource == '/favicon.ico':
@@ -101,8 +98,6 @@ class HTTP_server:
         content_line = 'Content-Type: '
         content_type = 'text/html'
         blank_line = '\r\n'
-
-        path = '.' + resource
 
         if not os.path.exists(path):
             body = b'HTTP/1.0 404 Not Found\r\n'
@@ -198,12 +193,6 @@ class HTTP_server:
         else:
             size = '-'
         return '<th align=\"right\" >' + size + '</th></tr>'
-
-    def cgi(self, program, args):
-        if os.path.isfile(program):
-            return subprocess.check_output([program]+args)
-        else:
-            return 'Error -- program {0} not found.'.format(program)
 
 if __name__ == "__main__":
     # Accept a flag '--threaded' to make the server threaded
