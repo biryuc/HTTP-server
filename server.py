@@ -8,11 +8,11 @@ import time
 import re
 import subprocess
 from urllib.parse import unquote
-
+import urllib.parse as urlparse
 
 class HTTP_server:
     host = '127.0.0.1'
-    port = 8081
+    port = 8082
     buf_size = 1024
     max_conn = 200
     abs_path = 'http://' + str(host) + ':' + str(port)
@@ -85,7 +85,6 @@ class HTTP_server:
             arg_string = components.group(3)
         else:
             path = './'
-        print(path)
 
         if resource == '/favicon.ico':
             return ''.encode()
@@ -111,6 +110,11 @@ class HTTP_server:
                     body = self.call_cgi(path, args).encode()
                 else:
                     body = self.call_cgi(path).encode()
+            # elif 'cgi' in path:
+            #     # print(path)
+            #     print("Vars: ")
+            #     parsed = urlparse.parse_qs(urlparse.urlparse(resource).query)
+            #     print(parsed)
             else:
                 content_type = mimetypes.guess_type(path)[0]
                 with open(path, 'rb') as f:
