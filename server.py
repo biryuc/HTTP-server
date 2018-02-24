@@ -87,7 +87,6 @@ class HTTP_server:
             path = './'
         print(path)
 
-
         if resource == '/favicon.ico':
             return ''.encode()
 
@@ -102,8 +101,8 @@ class HTTP_server:
             if os.path.isdir(path):
                 index = path + 'index.html'
                 if os.path.exists(index):
-                    with open(index, 'r') as f:
-                        body = f.read().encode()
+                    with open(index, 'rb') as f:
+                        body = f.read()
                 else:
                     body = self.traverse_dir('.' + resource).encode()
             elif resource[-4:] == '.cgi':
@@ -113,15 +112,10 @@ class HTTP_server:
                 else:
                     body = self.call_cgi(path).encode()
             else:
-                # open file that was passed
-                c_type, format = mimetypes.guess_type(path)[0].split('/')
-                if c_type == 'text':
-                    with open(path, 'r') as f:
-                        body = f.read().encode()
-                else:
-                    content_type = mimetypes.guess_type(path)[0]
-                    with open(path, 'rb') as f:
-                        body = f.read()
+                content_type = mimetypes.guess_type(path)[0]
+                with open(path, 'rb') as f:
+                    body = f.read()
+
 
         header_part = response_line + content_line + content_type + blank_line + blank_line
         response = header_part.encode() + body
@@ -180,7 +174,7 @@ class HTTP_server:
         return traversed + end
 
     def create_link_col(self, name, link):
-        return '<tr><th align=\"left\" ><a href=\"'+ link +'\">' + name + '</a></th>'
+        return '<tr><th align=\"left\" ><a href=\"'+ link + '\">' + name + '</a></th>'
 
     def create_modified_col(self, path):
         date = time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(os.path.getmtime(path)))
@@ -192,6 +186,7 @@ class HTTP_server:
         else:
             size = '-'
         return '<th align=\"right\" >' + size + '</th></tr>'
+
 
 if __name__ == "__main__":
     # Accept a flag '--threaded' to make the server threaded
