@@ -11,8 +11,7 @@ echo '</head>'
 echo '<body>'
 
 echo '<h2> Registration form </h2>'
-
-  echo "<form method=GET action=\"${SCRIPT}\">"\
+  echo "<form method=\"GET\" action=\"${SCRIPT}\">"\
        '<table nowrap>'\
           '<tr><td>First Name: </TD><TD><input type="text" name="firstname" value="" ></td></tr>'\
           '<tr><td>Last Name: </td><td><input type="text" name="lastname" value=""></td>'\
