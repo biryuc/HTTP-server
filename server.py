@@ -9,6 +9,7 @@ import re
 import subprocess
 from urllib.parse import unquote
 import urllib.parse as urlparse
+from datetime import datetime
 
 class HTTP_server:
     host = '127.0.0.1'
@@ -66,9 +67,9 @@ class HTTP_server:
     def call_cgi(self, cgi, args=[], inputs=None):
         cgi_proc = subprocess.Popen([cgi]+args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         if inputs:
-            output = str(cgi_proc.communicate(input=inputs)[0])
+            output = cgi_proc.communicate(input=inputs)[0]
         else:
-            output = str(cgi_proc.communicate()[0])
+            output = cgi_proc.communicate()[0]
 
         return output
 
@@ -94,7 +95,13 @@ class HTTP_server:
         content_type = 'text/html'
         blank_line = '\r\n'
 
-        if not os.path.exists(path):
+        # if path has a query (in our case, form submission),
+        # then parse parameters passed
+
+        if '?' in path:
+            parsed = urlparse.parse_qs(urlparse.urlparse(resource).query)
+            body = self.query_response(parsed).encode()
+        elif not os.path.exists(path):
             body = b'HTTP/1.0 404 Not Found\r\n'
         else:
             if os.path.isdir(path):
@@ -102,28 +109,39 @@ class HTTP_server:
                 if os.path.exists(index):
                     with open(index, 'rb') as f:
                         body = f.read()
+                    f.close()
                 else:
                     body = self.traverse_dir('.' + resource).encode()
             elif resource[-4:] == '.cgi':
                 if arg_string:
                     args = arg_string.replace('&',' ').replace('=',' ').split(' ')
-                    body = self.call_cgi(path, args).encode()
+                    body = self.call_cgi(path, args)
                 else:
-                    body = self.call_cgi(path).encode()
-            # elif 'cgi' in path:
-            #     # print(path)
-            #     print("Vars: ")
-            #     parsed = urlparse.parse_qs(urlparse.urlparse(resource).query)
-            #     print(parsed)
+                    body = self.call_cgi(path)
+
             else:
                 content_type = mimetypes.guess_type(path)[0]
                 with open(path, 'rb') as f:
                     body = f.read()
-
+                f.close()
 
         header_part = response_line + content_line + content_type + blank_line + blank_line
         response = header_part.encode() + body
         return response
+
+    # Query response
+
+    def query_response(self, args):
+        with open('server/log.txt', 'a') as f:
+            for key in args:
+                f.write("%s: " % key)
+                for val in args[key]:
+                    f.write("%s " % val)
+                f.write(";")
+            f.write("access time: " + str(datetime.now()) + '\n')
+        f.close()
+
+        return '<html><body> Information was saved </body</html>'
 
     # Traverse current directory and display all subdirectories and files
 
