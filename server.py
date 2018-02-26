@@ -33,6 +33,7 @@ class HTTP_server:
             threading.Thread(target=self.handle_client, args=(self.s.accept())).start()
 
     def handle_client(self, connection, address):
+        print('Started: {0}'.format(threading.current_thread()))
         # accept an incoming client connection and parse the input data stream into a HTTP request
 
         connection.setblocking(False)
@@ -50,7 +51,10 @@ class HTTP_server:
 
             response = self.parse_request(request)
             connection.sendall(response)
-            connection.close()
+
+        #time.sleep(5)
+        print('Ended: {0}'.format(threading.current_thread()))
+        connection.close()
 
     def parse_request(self, request):
         fields = request.split('\r\n')[0].split(' ')
