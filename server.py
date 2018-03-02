@@ -1,3 +1,13 @@
+# CS 560. Programming assignment # 1
+# Simple HHTP server
+#
+# Writen by:
+#   Ksenia Burova
+#   Parker Diamond
+#
+# February, 2018
+
+
 import select
 import socket
 import threading
@@ -19,6 +29,7 @@ class HTTP_server:
     abs_path = 'http://' + str(host) + ':' + str(port)
     url_pattern = re.compile('^((\/\w+\.?\w*.*)+)\??((\w+=\w+[&]?)*)', re.IGNORECASE)
 
+    # constructor defines which type of connection we use
     def __init__(self, threaded=False):
 
         # allocate a server socket, bind it to a port, and then listen for incoming connections
@@ -33,13 +44,15 @@ class HTTP_server:
         while True:
             threading.Thread(target=self.handle_client, args=(self.s.accept())).start()
 
+    # handle_client():
+    # Accepts an incoming client connection and parse the input data stream into a HTTP request
+    # Read from socket until input is exhausted
+
     def handle_client(self, connection, address):
-        # accept an incoming client connection and parse the input data stream into a HTTP request
 
         connection.setblocking(False)
         inputs, outputs, errors = select.select([connection], [], [])
 
-        # Read from socket until input is exhausted
         if inputs:
             request = ''
             while True:
@@ -53,6 +66,8 @@ class HTTP_server:
             connection.sendall(response)
             connection.close()
 
+    # Check if request is a GET type
+
     def parse_request(self, request):
         fields = request.split('\r\n')[0].split(' ')
         if fields[0] == 'GET':
@@ -63,6 +78,8 @@ class HTTP_server:
             response = 'HTTP/1.0 501 Not Implemented\r\n'
 
         return response
+
+    # Helper function to handle CGI scripts
 
     def call_cgi(self, cgi, args=[], inputs=None):
         cgi_proc = subprocess.Popen([cgi]+args, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -177,10 +194,14 @@ class HTTP_server:
             </tr>
         """
 
+        # create a row in a table for paent directory
+
         parent_row = self.create_link_col('Parent', self.abs_path + parent[1:])\
                      + self.create_modified_col(parent) + self.create_size_col(parent)
 
         traversed =  begin + header + table_start + parent_row
+
+        # traverse all the files and create html table contents
 
         files = os.listdir(path)
         for f in files:
@@ -195,6 +216,7 @@ class HTTP_server:
         """
         return traversed + end
 
+    # Next 3 functions are hepe functions used for generating html content in traverse_dir
     def create_link_col(self, name, link):
         return '<tr><th align=\"left\" ><a href=\"'+ link + '\">' + name + '</a></th>'
 
